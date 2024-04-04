@@ -308,6 +308,11 @@ func (rcsw *RemoteClusterServiceWatcher) cleanupOrphanedServices(ctx context.Con
 
 	var errors []error
 	for _, srv := range servicesOnLocalCluster {
+		// if it's a headless service, don't GC because it's expected that it won't have a service with that name
+		// in the remote cluster
+		if srv.Labels[consts.MirroredHeadlessSvcNameLabel] != "" {
+			rcsw.log.Infof("Skipping GC'ing service %s/%s because it's a headless service", srv.Namespace, srv.Name)
+		}
 		_, err := rcsw.remoteAPIClient.Svc().Lister().Services(srv.Namespace).Get(rcsw.originalResourceName(srv.Name))
 		if err != nil {
 			if kerrors.IsNotFound(err) {
